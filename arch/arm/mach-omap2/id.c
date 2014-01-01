@@ -18,6 +18,7 @@
 #include <linux/kernel.h>
 #include <linux/init.h>
 #include <linux/io.h>
+#include <linux/swab.h>
 #include <linux/socinfo.h>
 #include <linux/seq_file.h>
 
@@ -343,6 +344,7 @@ void __init omap3_check_revision(void)
 
 void __init omap3_cpuinfo(void)
 {
+	int i;
 	int sz;
 	u8 rev = GET_OMAP_REVISION();
 	char cpu_name[16], cpu_rev[16];
@@ -427,6 +429,31 @@ void __init omap3_cpuinfo(void)
 			read_tap_reg(OMAP_TAP_PROD_ID_2),
 			read_tap_reg(OMAP_TAP_PROD_ID_3));
 
+	switch(omap_type())
+	{
+		case OMAP2_DEVICE_TYPE_EMU:
+			pr_info("OMAP is in Emulation (EMU) mode.\n");
+			break;
+
+		case OMAP2_DEVICE_TYPE_SEC:
+			pr_info("OMAP is in High Security (HS) mode.\n");
+			break;
+
+		case OMAP2_DEVICE_TYPE_GP:
+			pr_info("OMAP is in General Purpose (GP) mode.\n");
+			break;
+
+		default:
+			pr_info("OMAP is in unknown mode\n");
+			break;
+	}
+
+	pr_info("OMAP root key hash: ");
+
+	for (i = 0; i < 5; i++)
+		printk("%08x", __swab32(omap_ctrl_readl(OMAP2_CONTROL_RPUB_KEY_H_0 + i*4)));
+
+	printk("\n");
 }
 
 #ifdef CONFIG_OMAP3_EXPORT_DIE_ID
