@@ -766,6 +766,7 @@ ENTRY(__switch_to)
 #elif !defined(CONFIG_TLS_REG_EMUL)
 	mov	r4, #0xffff0fff
 	str	r3, [r4, #-15]			@ TLS val at 0xffff0ff0
+#endif
 #ifdef CONFIG_MMU
 	mcr	p15, 0, r6, c3, c0, 0		@ Set domain register
 #endif
