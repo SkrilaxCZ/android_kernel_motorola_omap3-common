@@ -50,7 +50,7 @@ static DEFINE_MUTEX(reg_access);
  * in this mask indicates that the corresponding bit (when not being changed)
  * should be written with a value of '0'.
  */
-static const struct {
+static struct {
 	unsigned short address;         /* Address of the register */
 	unsigned short constant_mask;	/* Constant modifiability mask */
 	unsigned short rbw_mask;	/* Read-before-write mask */
