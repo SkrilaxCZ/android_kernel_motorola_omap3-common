@@ -57,6 +57,10 @@
 #include <mach/system.h>
 #include <linux/wakelock.h>
 
+#ifdef CONFIG_EMU_UART_DEBUG
+#include <plat/board-mapphone-emu_uart.h>
+#endif
+
 #include "cm-regbits-34xx.h"
 
 #ifdef CONFIG_ARM_OF
@@ -2551,8 +2555,11 @@ static void __init mapphone_init(void)
 	mapphone_bp_model_init();
 	mapphone_padconf_init();
 #ifdef CONFIG_EMU_UART_DEBUG
-	/* emu-uart function will override devtree iomux setting */
-	activate_emu_uart();
+	/* If console is ttyS2 then activate emu_uart
+	 * emu-uart function will override devtree iomux setting 
+	 */
+	if (strstr(saved_command_line, "console=ttyS2"))
+		activate_emu_uart();
 #endif
 	mapphone_gpio_mapping_init();
 	mapphone_ramconsole_init();
