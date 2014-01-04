@@ -582,8 +582,8 @@ static int ecryptfs_rmdir(struct inode *dir, struct dentry *dentry)
 	dget(lower_dentry);
 	rc = vfs_rmdir(lower_dir_dentry->d_inode, lower_dentry);
 	dput(lower_dentry);
-	if (!rc)
-		d_delete(lower_dentry);
+	if (!rc && dentry->d_inode)
+		clear_nlink(dentry->d_inode);
 	fsstack_copy_attr_times(dir, lower_dir_dentry->d_inode);
 	dir->i_nlink = lower_dir_dentry->d_inode->i_nlink;
 	unlock_dir(lower_dir_dentry);
@@ -895,6 +895,33 @@ out_free:
 		kmem_cache_free(ecryptfs_file_info_cache,
 				ecryptfs_file_to_private(&fake_ecryptfs_file));
 out:
+	return rc;
+}
+
+/**
+ * ecryptfs_truncate
+ * @dentry: The ecryptfs layer dentry
+ * @new_length: The length to expand the file to
+ *
+ * Simple function that handles the truncation of an eCryptfs inode and
+ * its corresponding lower inode.
+ *
+ * Returns zero on success; non-zero otherwise
+ */
+int ecryptfs_truncate(struct dentry *dentry, loff_t new_length)
+{
+	struct iattr ia = { .ia_valid = ATTR_SIZE, .ia_size = new_length };
+	struct iattr lower_ia = { .ia_valid = 0 };
+	int rc;
+
+	rc = truncate_upper(dentry, &ia, &lower_ia);
+	if (!rc && lower_ia.ia_valid & ATTR_SIZE) {
+		struct dentry *lower_dentry = ecryptfs_dentry_to_lower(dentry);
+
+		mutex_lock(&lower_dentry->d_inode->i_mutex);
+		rc = notify_change(lower_dentry, &lower_ia);
+		mutex_unlock(&lower_dentry->d_inode->i_mutex);
+	}
 	return rc;
 }
 
