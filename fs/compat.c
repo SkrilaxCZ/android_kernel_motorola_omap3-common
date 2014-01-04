@@ -1533,8 +1533,6 @@ int compat_do_execve(char * filename,
 	if (retval < 0)
 		goto out;
 
-	current->stack_start = current->mm->start_stack;
-
 	trace_fs_exec(filename);
 	/* execve succeeded */
 	current->fs->in_exec = 0;
