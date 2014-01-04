@@ -1027,6 +1027,28 @@ int ecryptfs_getattr_link(struct vfsmount *mnt, struct dentry *dentry,
 	return rc;
 }
 
+int ecryptfs_getattr_link(struct vfsmount *mnt, struct dentry *dentry,
+			  struct kstat *stat)
+{
+	struct ecryptfs_mount_crypt_stat *mount_crypt_stat;
+	int rc = 0;
+
+	mount_crypt_stat = &ecryptfs_superblock_to_private(
+						dentry->d_sb)->mount_crypt_stat;
+	generic_fillattr(dentry->d_inode, stat);
+	if (mount_crypt_stat->flags & ECRYPTFS_GLOBAL_ENCRYPT_FILENAMES) {
+		char *target;
+		size_t targetsiz;
+
+		rc = ecryptfs_readlink_lower(dentry, &target, &targetsiz);
+		if (!rc) {
+			kfree(target);
+			stat->size = targetsiz;
+		}
+	}
+	return rc;
+}
+
 int ecryptfs_getattr(struct vfsmount *mnt, struct dentry *dentry,
 		     struct kstat *stat)
 {
