@@ -217,7 +217,7 @@ quota_mt2(const struct sk_buff *skb, const struct xt_match_param *par)
 	return ret;
 }
 
-static struct xt_match quota_mt2_reg[] __read_mostly = {
+static struct xt_match quota_mt2_reg[] = {
 	{
 		.name       = "quota2",
 		.revision   = 3,
