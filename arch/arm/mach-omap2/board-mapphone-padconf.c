@@ -1824,7 +1824,7 @@ void __init mux_setting_init(void)
 /* 	touch_int_fix: prevent spurious touch interrupt in charging mode
 	by turning on pullup resistor on CAM_D10
  */
-void touch_int_fix(void)
+void __init touch_int_fix(void)
 {
 	int i;
 

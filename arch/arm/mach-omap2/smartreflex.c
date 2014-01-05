@@ -1818,7 +1818,7 @@ u32 ApplyAdj(u32 NValue, int NNT_Delta, int PNT_Delta)
 		(SenPRN << 0x08) | (SenNRN);
 }
 
-static void sr1_init(struct omap_sr *sr)
+static void __init sr1_init(struct omap_sr *sr)
 {
 	int i;
 

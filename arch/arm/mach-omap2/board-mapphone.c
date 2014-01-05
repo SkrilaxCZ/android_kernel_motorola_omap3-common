@@ -450,7 +450,7 @@ static struct i2c_board_info __initdata mapphone_i2c_bus1_master_board_info[];
 static struct i2c_board_info __initdata mapphone_i2c_bus2_master_board_info[];
 
 /* Legacy support */
-static void mapphone_legacy_qtouch_init(void)
+static void __init mapphone_legacy_qtouch_init(void)
 {
 	int len = 0;
 	struct device_node *touch_node;
@@ -665,7 +665,7 @@ mapphone_legacy_qtouch_init_ret:
 	return;
 }
 
-static void mapphone_touch_init(void)
+static void __init mapphone_touch_init(void)
 {
 	int retval = 0;
 	struct device_node *dtnode;
