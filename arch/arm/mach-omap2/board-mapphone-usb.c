@@ -180,7 +180,7 @@ static struct android_usb_product usb_products[] = {
 static struct android_usb_platform_data andusb_plat = {
 	.vendor_id      = 0x22b8,
 	.product_id     = 0x41DA,
-	.product_name   = "A853",
+	.product_name   = "A953",
 	.manufacturer_name	= "Motorola",
 	.serial_number		= device_serial,
 	.num_products = ARRAY_SIZE(usb_products),
@@ -200,7 +200,7 @@ static struct platform_device androidusb_device = {
 
 static struct usb_mass_storage_platform_data usbms_plat = {
 	.vendor			= "Motorola",
-	.product		= "A853",
+	.product		= "A953",
 	.release		= 1,
 	.nluns			= 1,
 	.cdrom_lun_num		= 1,
