@@ -1,7 +1,7 @@
 #
 # Automatically generated make config: don't edit
-# Linux kernel version: 2.6.32.9
-# Fri Jan  3 10:29:27 2014
+# Linux kernel version: 2.6.32.61
+# Sun Jan  5 01:20:19 2014
 #
 CONFIG_ARM=y
 CONFIG_SYS_SUPPORTS_APM_EMULATION=y
@@ -62,11 +62,6 @@ CONFIG_HAVE_TRACE_CLOCK=y
 # CONFIG_HAVE_TRACE_CLOCK_GENERIC is not set
 CONFIG_HAVE_TRACE_CLOCK_32_TO_64=y
 # CONFIG_HAVE_UNSYNCHRONIZED_TSC is not set
-CONFIG_GROUP_SCHED=y
-CONFIG_FAIR_GROUP_SCHED=y
-CONFIG_RT_GROUP_SCHED=y
-# CONFIG_USER_SCHED is not set
-CONFIG_CGROUP_SCHED=y
 CONFIG_CGROUPS=y
 # CONFIG_CGROUP_DEBUG is not set
 # CONFIG_CGROUP_NS is not set
@@ -76,6 +71,9 @@ CONFIG_CGROUPS=y
 CONFIG_CGROUP_CPUACCT=y
 CONFIG_RESOURCE_COUNTERS=y
 # CONFIG_CGROUP_MEM_RES_CTLR is not set
+CONFIG_CGROUP_SCHED=y
+CONFIG_FAIR_GROUP_SCHED=y
+CONFIG_RT_GROUP_SCHED=y
 # CONFIG_SYSFS_DEPRECATED_V2 is not set
 # CONFIG_RELAY is not set
 # CONFIG_NAMESPACES is not set
@@ -363,7 +361,7 @@ CONFIG_ALIGNMENT_TRAP=y
 #
 CONFIG_ZBOOT_ROM_TEXT=0x0
 CONFIG_ZBOOT_ROM_BSS=0x0
-CONFIG_CMDLINE="root=/dev/nfs nfsroot=192.168.0.1:/home/user/buildroot ip=192.168.0.2:192.168.0.1:192.168.0.1:255.255.255.0:tgt:eth0:off rw console=ttyS2,115200n8"
+CONFIG_CMDLINE="console=/dev/null rw mem=498M@0x80C00000 init=/init ip=off brdrev=P2A omap3_die_id androidboot.bootloader=0x0000 mmcparts=mmcblk1:p7(pds),p15(boot),p16(recovery),p17(cdrom),p18(misc),p19(cid),p20(kpanic),p21(system),p22(prek),p23(pkbackup),p24(cache),p25(preinstall),p26(vendor)"
 # CONFIG_XIP_KERNEL is not set
 # CONFIG_KEXEC is not set
 
@@ -738,6 +736,10 @@ CONFIG_WIRELESS_EXT_SYSFS=y
 
 #
 # CFG80211 needs to be enabled for MAC80211
+#
+
+#
+# Some wireless drivers require a rate control algorithm
 #
 # CONFIG_WIMAX is not set
 CONFIG_RFKILL=y
@@ -1948,7 +1950,6 @@ CONFIG_STAGING=y
 # CONFIG_ECHO is not set
 # CONFIG_COMEDI is not set
 # CONFIG_ASUS_OLED is not set
-# CONFIG_INPUT_MIMIO is not set
 # CONFIG_TRANZPORT is not set
 
 #
