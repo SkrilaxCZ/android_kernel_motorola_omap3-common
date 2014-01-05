@@ -915,33 +915,6 @@ int ecryptfs_truncate(struct dentry *dentry, loff_t new_length)
 	return rc;
 }
 
-/**
- * ecryptfs_truncate
- * @dentry: The ecryptfs layer dentry
- * @new_length: The length to expand the file to
- *
- * Simple function that handles the truncation of an eCryptfs inode and
- * its corresponding lower inode.
- *
- * Returns zero on success; non-zero otherwise
- */
-int ecryptfs_truncate(struct dentry *dentry, loff_t new_length)
-{
-	struct iattr ia = { .ia_valid = ATTR_SIZE, .ia_size = new_length };
-	struct iattr lower_ia = { .ia_valid = 0 };
-	int rc;
-
-	rc = truncate_upper(dentry, &ia, &lower_ia);
-	if (!rc && lower_ia.ia_valid & ATTR_SIZE) {
-		struct dentry *lower_dentry = ecryptfs_dentry_to_lower(dentry);
-
-		mutex_lock(&lower_dentry->d_inode->i_mutex);
-		rc = notify_change(lower_dentry, &lower_ia);
-		mutex_unlock(&lower_dentry->d_inode->i_mutex);
-	}
-	return rc;
-}
-
 static int
 ecryptfs_permission(struct inode *inode, int mask)
 {
@@ -1025,28 +998,6 @@ static int ecryptfs_setattr(struct dentry *dentry, struct iattr *ia)
 	mutex_unlock(&lower_dentry->d_inode->i_mutex);
 out:
 	fsstack_copy_attr_all(inode, lower_inode, NULL);
-	return rc;
-}
-
-int ecryptfs_getattr_link(struct vfsmount *mnt, struct dentry *dentry,
-			  struct kstat *stat)
-{
-	struct ecryptfs_mount_crypt_stat *mount_crypt_stat;
-	int rc = 0;
-
-	mount_crypt_stat = &ecryptfs_superblock_to_private(
-						dentry->d_sb)->mount_crypt_stat;
-	generic_fillattr(dentry->d_inode, stat);
-	if (mount_crypt_stat->flags & ECRYPTFS_GLOBAL_ENCRYPT_FILENAMES) {
-		char *target;
-		size_t targetsiz;
-
-		rc = ecryptfs_readlink_lower(dentry, &target, &targetsiz);
-		if (!rc) {
-			kfree(target);
-			stat->size = targetsiz;
-		}
-	}
 	return rc;
 }
 

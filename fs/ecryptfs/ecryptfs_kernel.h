@@ -274,6 +274,7 @@ struct ecryptfs_crypt_stat {
 	u32 flags;
 	unsigned int file_version;
 	size_t iv_bytes;
+	size_t num_header_bytes_at_front;
 	size_t metadata_size;
 	size_t extent_size; /* Data extent size; default is 4096 */
 	size_t key_size;
