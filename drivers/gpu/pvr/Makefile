@@ -29,16 +29,20 @@ ccflags-y = -DLINUX -D__linux__ -Idrivers/gpu/pvr \
         -DSYS_OMAP3430_PIN_MEMORY_BUS_CLOCK \
 	-DPVRSRV_MODNAME="\"pvrsrvkm"\"
 
-ccflags-$(CONFIG_SGX540) +=  -Idrivers/gpu/pvr/omap4  -Idrivers/gpu/pvr/sgx \
-	-DNO_OMAP_TIMER \
-	-DSGX_CLK_CORE_DIV5 \
-	-DSGX540 -DSUPPORT_SGX540
+ifneq ($(CONFIG_SGX540),)
+	ccflags-y +=  -Idrivers/gpu/pvr/omap4  -Idrivers/gpu/pvr/sgx \
+		-DNO_OMAP_TIMER \
+		-DSGX_CLK_CORE_DIV5 \
+		-DSGX540 -DSUPPORT_SGX540
+endif
+
+ifneq ($(CONFIG_SGX530),)
+	ccflags-y +=  -Idrivers/gpu/pvr/omap3  -Idrivers/gpu/pvr/sgx \
+		-DSGX530 -DSUPPORT_SGX530
+endif
 
 ccflags-$(CONFIG_SGX_REV110) += -DSGX_CORE_REV=110
 ccflags-$(CONFIG_SGX_REV120) += -DSGX_CORE_REV=120
-
-ccflags-$(CONFIG_SGX530) +=  -Idrivers/gpu/pvr/omap3  -Idrivers/gpu/pvr/sgx \
-	-DSGX530 -DSUPPORT_SGX530
 
 ccflags-$(CONFIG_SGX_REV125) += -DSGX_CORE_REV=125
 ccflags-$(CONFIG_SGX_REV121) += -DSGX_CORE_REV=121
@@ -112,11 +116,11 @@ pvr_common-y := \
 	mem_debug.o \
 	osfunc_common.o
 
-pvr540-$(CONFIG_SGX540) := \
+pvr540-y := \
 	omap4/sysconfig.o \
 	omap4/sysutils.o
 
-pvr530-$(CONFIG_SGX530) := \
+pvr530-y := \
 	omap3/sysconfig.o \
 	omap3/sysutils.o
 
@@ -147,8 +151,16 @@ dbgdrv-$(CONFIG_SGX_PDUMP) := \
 	pdump/hostfunc.o \
 	pdump/hotkey.o
 
-obj-$(CONFIG_SGX540) := pvr_common.o sgx.o omaplfb.o pvr540.o
-obj-$(CONFIG_SGX530) := pvr_common.o sgx.o omaplfb.o pvr530.o
-obj-$(CONFIG_VIRTUAL_DISPLAY_SUPPORT) := pvr_common.o sgx.o \
-	sgx_displayclass.o pvr540.o
+
+ifneq ($(CONFIG_SGX540),)
+	pvrsrvkm-y := pvr_common.o sgx.o pvr540.o
+	obj-$(CONFIG_SGX540) := pvrsrvkm.o omaplfb.o
+	obj-$(CONFIG_VIRTUAL_DISPLAY_SUPPORT) := sgx_displayclass.o
+endif
+
+ifneq ($(CONFIG_SGX530),)
+	pvrsrvkm-y := pvr_common.o sgx.o pvr530.o
+	obj-$(CONFIG_SGX530) := pvrsrvkm.o omaplfb.o
+endif
+
 obj-$(CONFIG_SGX_PDUMP) += dbgdrv.o
