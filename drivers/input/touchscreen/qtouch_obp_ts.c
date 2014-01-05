@@ -29,8 +29,7 @@
 #include <linux/qtouch_obp_ts.h>
 #include <linux/qtouch_obp_ts_firmware.h>
 #include <linux/timer.h>
-
-
+#include <linux/proc_fs.h>
 
 #define IGNORE_CHECKSUM_MISMATCH
 
@@ -104,6 +103,7 @@ static void qtouch_ts_early_suspend(struct early_suspend *handler);
 static void qtouch_ts_late_resume(struct early_suspend *handler);
 #endif
 
+static struct qtouch_ts_data qtouch_ts_dat;
 static struct workqueue_struct *qtouch_ts_wq;
 
 static struct timer_list keyarray_timer;
@@ -240,6 +240,7 @@ static int qtouch_write_addr(struct qtouch_ts_data *ts, uint16_t addr,
 	return 0;
 }
 
+#ifndef IGNORE_CHECKSUM_MISMATCH
 static uint16_t calc_csum(uint16_t curr_sum, void *_buf, int buf_sz)
 {
 	uint8_t *buf = _buf;
@@ -258,6 +259,7 @@ static uint16_t calc_csum(uint16_t curr_sum, void *_buf, int buf_sz)
 
 	return curr_sum;
 }
+#endif
 
 static inline struct qtm_object *find_obj(struct qtouch_ts_data *ts, int id)
 {
@@ -357,6 +359,39 @@ static int qtouch_power_config(struct qtouch_ts_data *ts, int on)
 				 min(sizeof(pwr_cfg), obj->entry.size));
 }
 
+static int proc_qtouch_num_read(char *buffer, char **buffer_location, off_t offset, int count, int *eof, void *data) 
+{
+	int ret;
+	
+	if (offset > 0)
+		ret = 0;
+	else
+		ret = scnprintf(buffer, count, "%u\n", qtouch_ts_dat.pdata->multi_touch_cfg.num_touch);
+	
+	return ret;
+}
+
+static int proc_qtouch_num_write(struct file *filp, const char __user *buffer, unsigned long len, void *data) 
+{
+	unsigned int new_num_touch;
+
+	if (sscanf(buffer, "%u", &new_num_touch) == 1) {
+		if (new_num_touch > 10) 
+			new_num_touch = 10;
+		else if (new_num_touch < 2) 
+			new_num_touch = 2;
+		
+		if (qtouch_ts_dat.pdata->multi_touch_cfg.num_touch != new_num_touch) {
+			qtouch_ts_dat.pdata->multi_touch_cfg.num_touch = new_num_touch;
+			qtouch_force_reset(&qtouch_ts_dat, 0);
+		}
+	} 
+	else
+		printk(KERN_INFO "qtouh_num: wrong parameter for num_touch\n");
+	
+	return len;
+}
+
 /* Apply the configuration provided in the platform_data to the hardware */
 static int qtouch_hw_init(struct qtouch_ts_data *ts)
 {
@@ -400,6 +435,8 @@ static int qtouch_hw_init(struct qtouch_ts_data *ts)
 			       __func__);
 			return ret;
 		}
+
+		pr_info("%s: Set num_touch to %d\n", __func__, cfg.num_touch);
 	}
 
 	/* configure the key-array object. */
@@ -1084,8 +1121,10 @@ err_alloc_msg_buf:
 static int qtouch_process_info_block(struct qtouch_ts_data *ts)
 {
 	struct qtm_id_info qtm_info;
+#ifndef IGNORE_CHECKSUM_MISMATCH
 	uint32_t our_csum = 0x0;
 	uint32_t their_csum = 0x0;
+#endif
 	uint8_t report_id;
 	uint8_t checksum[3];
 	uint16_t addr;
@@ -1099,8 +1138,9 @@ static int qtouch_process_info_block(struct qtouch_ts_data *ts)
 		pr_err("%s: Cannot read info object block\n", __func__);
 		goto err_read_info_block;
 	}
+#ifndef IGNORE_CHECKSUM_MISMATCH
 	our_csum = calc_csum(our_csum, &qtm_info, sizeof(qtm_info));
-
+#endif
 	/* TODO: Add a version/family/variant check? */
 	pr_info("%s: Build version is 0x%x\n", __func__, qtm_info.version);
 
@@ -1138,7 +1178,9 @@ static int qtouch_process_info_block(struct qtouch_ts_data *ts)
 			err = -EIO;
 			goto err_read_entry;
 		}
+#ifndef IGNORE_CHECKSUM_MISMATCH
 		our_csum = calc_csum(our_csum, &entry, sizeof(entry));
+#endif
 		addr += sizeof(entry);
 
 		entry.size++;
@@ -1187,6 +1229,7 @@ static int qtouch_process_info_block(struct qtouch_ts_data *ts)
 		goto err_missing_objs;
 	}
 
+#ifndef IGNORE_CHECKSUM_MISMATCH
 	err = qtouch_read_addr(ts, addr, &checksum[0], sizeof(checksum));
 	if (err != 0) {
 		pr_err("%s: Unable to read remote checksum\n", __func__);
@@ -1205,11 +1248,10 @@ static int qtouch_process_info_block(struct qtouch_ts_data *ts)
 	if (our_csum != their_csum) {
 		pr_warning("%s: Checksum mismatch (0x%08x != 0x%08x)\n",
 			   __func__, our_csum, their_csum);
-#ifndef IGNORE_CHECKSUM_MISMATCH
 		err = -ENODEV;
 		goto err_bad_checksum;
-#endif
 	}
+#endif
 
 	pr_info("%s: %s found. family 0x%x, variant 0x%x, ver 0x%x, "
 		"build 0x%x, matrix %dx%d, %d objects.\n", __func__,
@@ -1225,7 +1267,10 @@ static int qtouch_process_info_block(struct qtouch_ts_data *ts)
 
 	return 0;
 
+#ifndef IGNORE_CHECKSUM_MISMATCH
 err_no_checksum:
+err_bad_checksum:
+#endif
 err_missing_objs:
 err_no_msg_proc:
 err_read_entry:
@@ -1522,6 +1567,7 @@ static int qtouch_ts_probe(struct i2c_client *client,
 {
 	struct qtouch_ts_platform_data *pdata = client->dev.platform_data;
 	struct qtouch_ts_data *ts;
+	struct proc_dir_entry *proc_entry;
 	int err;
 	struct touch_fw_entry *touch_fw_table_ptr;
 	unsigned char boot_info;
@@ -1543,11 +1589,9 @@ static int qtouch_ts_probe(struct i2c_client *client,
 		return -ENODEV;
 	}
 
-	ts = kzalloc(sizeof(struct qtouch_ts_data), GFP_KERNEL);
-	if (ts == NULL) {
-		err = -ENOMEM;
-		goto err_alloc_data_failed;
-	}
+	ts = &qtouch_ts_dat;
+	memset(ts, 0, sizeof(struct qtouch_ts_data));
+
 	ts->pdata = pdata;
 	ts->client = client;
 	i2c_set_clientdata(client, ts);
@@ -1675,6 +1719,7 @@ static int qtouch_ts_probe(struct i2c_client *client,
 		}
 	}
 
+	qtouch_hw_init(ts);
 	INIT_WORK(&ts->work, qtouch_ts_work_func);
 	INIT_WORK(&ts->boot_work, qtouch_ts_boot_work_func);
 
@@ -1780,6 +1825,11 @@ finish_touch_setup:
 
 	ts->cal_check_flag = 0;
 	ts->cal_timer = 0;
+
+	/* Create procfs node to allow chaning number of touchpoints*/
+	proc_mkdir("qtouch", NULL);
+	proc_entry = create_proc_read_entry("qtouch/num_touch", 0644, NULL, proc_qtouch_num_read, NULL);
+	proc_entry->write_proc = proc_qtouch_num_write;
 
 	return 0;
 
@@ -2187,6 +2237,10 @@ static void __exit qtouch_ts_exit(void)
 	i2c_del_driver(&qtouch_ts_driver);
 	if (qtouch_ts_wq)
 		destroy_workqueue(qtouch_ts_wq);
+
+	/* Remove proc entries */
+	remove_proc_entry("qtouch/num_touch", NULL);
+	remove_proc_entry("qtouch", NULL);
 }
 
 module_init(qtouch_ts_init);
