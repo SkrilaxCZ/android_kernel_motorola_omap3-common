@@ -26,19 +26,23 @@ ccflags-y = -DLINUX -D__linux__ -Idrivers/gpu/pvr \
 	-DPVR_LINUX_MISR_USING_PRIVATE_WORKQUEUE \
 	-DSYS_CUSTOM_POWERLOCK_WRAP \
 	-DSUPPORT_SGX_NEW_STATUS_VALS \
-        -DSYS_OMAP3430_PIN_MEMORY_BUS_CLOCK \
+	-DSYS_OMAP3430_PIN_MEMORY_BUS_CLOCK \
 	-DPVRSRV_MODNAME="\"pvrsrvkm"\"
 
 ifneq ($(CONFIG_SGX540),)
-	ccflags-y +=  -Idrivers/gpu/pvr/omap4  -Idrivers/gpu/pvr/sgx \
-		-DNO_OMAP_TIMER \
-		-DSGX_CLK_CORE_DIV5 \
-		-DSGX540 -DSUPPORT_SGX540
+
+ccflags-y +=  -Idrivers/gpu/pvr/omap4  -Idrivers/gpu/pvr/sgx \
+	-DNO_OMAP_TIMER \
+	-DSGX_CLK_CORE_DIV5 \
+	-DSGX540 -DSUPPORT_SGX540
+
 endif
 
 ifneq ($(CONFIG_SGX530),)
-	ccflags-y +=  -Idrivers/gpu/pvr/omap3  -Idrivers/gpu/pvr/sgx \
-		-DSGX530 -DSUPPORT_SGX530
+
+ccflags-y +=  -Idrivers/gpu/pvr/omap3  -Idrivers/gpu/pvr/sgx \
+	-DSGX530 -DSUPPORT_SGX530
+
 endif
 
 ccflags-$(CONFIG_SGX_REV110) += -DSGX_CORE_REV=110
@@ -151,16 +155,19 @@ dbgdrv-$(CONFIG_SGX_PDUMP) := \
 	pdump/hostfunc.o \
 	pdump/hotkey.o
 
-
 ifneq ($(CONFIG_SGX540),)
-	pvrsrvkm-y := pvr_common.o sgx.o pvr540.o
-	obj-$(CONFIG_SGX540) := pvrsrvkm.o omaplfb.o
-	obj-$(CONFIG_VIRTUAL_DISPLAY_SUPPORT) := sgx_displayclass.o
+
+pvrsrvkm-y := $(pvr_common-y) $(sgx-y) $(pvr540-y)
+obj-$(CONFIG_SGX540) := pvrsrvkm.o omaplfb.o
+obj-$(CONFIG_VIRTUAL_DISPLAY_SUPPORT) := sgx_displayclass.o
+
 endif
 
 ifneq ($(CONFIG_SGX530),)
-	pvrsrvkm-y := pvr_common.o sgx.o pvr530.o
-	obj-$(CONFIG_SGX530) := pvrsrvkm.o omaplfb.o
+
+pvrsrvkm-y := $(pvr_common-y) $(sgx-y) $(pvr530-y)
+obj-$(CONFIG_SGX530) := pvrsrvkm.o omaplfb.o
+
 endif
 
 obj-$(CONFIG_SGX_PDUMP) += dbgdrv.o
