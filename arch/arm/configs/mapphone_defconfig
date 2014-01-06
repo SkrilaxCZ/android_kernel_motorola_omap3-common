@@ -362,7 +362,7 @@ CONFIG_ALIGNMENT_TRAP=y
 #
 CONFIG_ZBOOT_ROM_TEXT=0x0
 CONFIG_ZBOOT_ROM_BSS=0x0
-CONFIG_CMDLINE="console=/dev/null rw mem=498M@0x80C00000 init=/init ip=off brdrev=P2A omap3_die_id androidboot.bootloader=0x0000 mmcparts=mmcblk1:p7(pds),p15(boot),p16(recovery),p17(cdrom),p18(misc),p19(cid),p20(kpanic),p21(system),p22(prek),p23(pkbackup),p24(cache),p25(preinstall),p26(vendor)"
+CONFIG_CMDLINE="console=/dev/null rw mem=498M@0x80C00000 init=/init ip=off brdrev=P2A omap3_die_id androidboot.bootloader=0x7012 mmcparts=mmcblk1:p7(pds),p15(boot),p16(recovery),p17(cdrom),p18(misc),p19(cid),p20(kpanic),p21(system),p22(prek),p23(pkbackup),p24(cache),p25(preinstall),p26(vendor)"
 # CONFIG_XIP_KERNEL is not set
 # CONFIG_KEXEC is not set
 
