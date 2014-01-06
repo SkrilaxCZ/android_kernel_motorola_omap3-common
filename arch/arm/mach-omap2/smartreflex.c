@@ -43,9 +43,9 @@
 #include "prm-regbits-34xx.h"
 
 /*OMAP3430 Turbo mode: ARM run at 800Mhz*/
-/*#define SR_TURBO*/
+#define SR_TURBO
 /*OMAP3430 Highspeed mode: ARM run at 720Mhz*/
-#define SR_HIGHSPEED
+/* #define SR_HIGHSPEED */
 
 /* MCUDISACK is expected to happen within 1uSec. */
 #define COUNT_TIMEOUT_MCUDISACK		200
@@ -74,6 +74,10 @@
 /* The number of steps for 1.0G OPP NTargets margins */
 #define NUM_STEPS_MARGIN_1_0G                   2
 
+/* Value for use with 1.0G OPP if not fused */
+#define DEFAULT_NVALUE_1_0G			0xAA9B8E
+/* Value for use with 1.2G OPP if not fused */
+#define DEFAULT_NVALUE_1_2G			0xBBFEEB
 
 #define SR_REGADDR(offset)	(sr->srbase_addr + (offset))
 
@@ -1493,19 +1497,11 @@ int sr_recalibrate(struct omap_opp *opp, u32 t_opp, u32 c_opp)
 	 * Add 3-Steps margin to the adjusted vsel
 	 * Set max volt limit to 1.4375 volt
 	 */
-	switch (omap_rev_id()) {
-	case OMAP_3630:
-	default:
-		if (omap_ctrl_readl(OMAP36XX_CONTROL_FUSE_OPP4_VDD1) != 0)
+	if (omap_ctrl_readl(OMAP36XX_CONTROL_FUSE_OPP5_VDD1) != 0) {
+		if ((VDD1_OPP == vdd) && (target_opp_no == VDD1_OPP5))
+			high_v += ADJUSTED_VSEL_MARGIN_IN_STEP_1_2G;
+		else
 			high_v += ADJUSTED_VSEL_MARGIN_IN_STEP;
-		break;
-	case OMAP_3630_1200:
-		if (omap_ctrl_readl(OMAP36XX_CONTROL_FUSE_OPP5_VDD1) != 0) {
-			if ((VDD1_OPP == vdd) && (target_opp_no == VDD1_OPP5))
-				high_v += ADJUSTED_VSEL_MARGIN_IN_STEP_1_2G;
-			else
-				high_v += ADJUSTED_VSEL_MARGIN_IN_STEP;
-		}
 	}
 
 	if (high_v  > MAX_ADJUSTED_VSEL)
@@ -1821,34 +1817,57 @@ u32 ApplyAdj(u32 NValue, int NNT_Delta, int PNT_Delta)
 static void __init sr1_init(struct omap_sr *sr)
 {
 	int i;
+	int opp_fused;
 
 	sr->num_opp = omap_pm_get_max_vdd1_opp();
+
 	if (cpu_is_omap3630()) {
 		sr->sr_errconfig_value |= ERRCONFIG_36XX_VPBOUNDINTEN |
 					ERRCONFIG_36XX_VPBOUNDINTST;
-		if (omap_rev_id() == OMAP_3630_1200) {
-			sr->opp_nvalue[4] =
-			omap_ctrl_readl(OMAP36XX_CONTROL_FUSE_OPP5_VDD1);
+		sr->opp_nvalue[4] =
+		   omap_ctrl_readl(OMAP36XX_CONTROL_FUSE_OPP5_VDD1);
+		sr->opp_nvalue[3] =
+		   omap_ctrl_readl(OMAP36XX_CONTROL_FUSE_OPP4_VDD1);
+		sr->opp_nvalue[2] =
+		   omap_ctrl_readl(OMAP36XX_CONTROL_FUSE_OPP3_VDD1);
+		sr->opp_nvalue[1] =
+		   omap_ctrl_readl(OMAP36XX_CONTROL_FUSE_OPP2_VDD1);
+		sr->opp_nvalue[0] =
+		   omap_ctrl_readl(OMAP36XX_CONTROL_FUSE_OPP1_VDD1);
+		/* Any revision will have OPP3 fused */
+		if (sr->opp_nvalue[2] != 0x0) {
+			/* These are optional */
+			opp_fused = 3;
+			if (sr->opp_nvalue[3] != 0x0) {
+				sr->opp_nvalue[3] = ApplyAdj(
+					sr->opp_nvalue[3],
+					3.0*12.5*NUM_STEPS_MARGIN_1_0G,
+					2.6*12.5*NUM_STEPS_MARGIN_1_0G);
+				opp_fused = 4;
+			} else {
+				pr_info("SR1 : Value for 1.0G not fused, using default\n");
+				sr->opp_nvalue[3] = ApplyAdj(
+					DEFAULT_NVALUE_1_0G,
+					3.0*12.5*NUM_STEPS_MARGIN_1_0G,
+					2.6*12.5*NUM_STEPS_MARGIN_1_0G);
+			}
+			if (sr->opp_nvalue[4] != 0x0) {
 				sr->opp_nvalue[4] = ApplyAdj(
 					sr->opp_nvalue[4],
 					3.0*12.5*NUM_STEPS_MARGIN_1_2G,
 					2.6*12.5*NUM_STEPS_MARGIN_1_2G);
-		}
-		sr->opp_nvalue[3] =
-		   omap_ctrl_readl(OMAP36XX_CONTROL_FUSE_OPP4_VDD1);
-		if (sr->opp_nvalue[3] != 0x0) {
+				opp_fused = 5;
+			} else {
+				pr_info("SR1 : Value for 1.2G not fused, using default\n");
+				sr->opp_nvalue[4] = ApplyAdj(
+					DEFAULT_NVALUE_1_2G,
+					3.0*12.5*NUM_STEPS_MARGIN_1_2G,
+					2.6*12.5*NUM_STEPS_MARGIN_1_2G);
+			}
 			pr_info("SR1 : Fused Nvalues for %d OPP\n",
-							sr->num_opp);
-			sr->opp_nvalue[3] = ApplyAdj(
-				sr->opp_nvalue[3],
-				3.0*12.5*NUM_STEPS_MARGIN_1_0G,
-				2.6*12.5*NUM_STEPS_MARGIN_1_0G);
-			sr->opp_nvalue[2] =
-			   omap_ctrl_readl(OMAP36XX_CONTROL_FUSE_OPP3_VDD1);
-			sr->opp_nvalue[1] =
-			   omap_ctrl_readl(OMAP36XX_CONTROL_FUSE_OPP2_VDD1);
-			sr->opp_nvalue[0] =
-			   omap_ctrl_readl(OMAP36XX_CONTROL_FUSE_OPP1_VDD1);
+				opp_fused);
+			pr_info("SR1 : Using %d OPP\n",
+				sr->num_opp);
 		} else {
 			pr_info("SR1 : Testing Nvalues for %d OPP\n",
 							sr->num_opp);
@@ -1873,16 +1892,14 @@ static void __init sr1_init(struct omap_sr *sr)
 		sr->errgain[3] = SR1_36XX_ERRGAIN_OPP4;
 		sr->errgain[4] = SR1_36XX_ERRGAIN_OPP5;
 
-		if (omap_rev_id() == OMAP_3630_1200) {
-			if (sr->opp_nvalue[4]) {
-				pr_info("VDD1 - OPP5 -  1.2G Nvalue = 0x%X\n",
-					sr->opp_nvalue[4]);
-			} else
-				pr_info("VDD1 - OPP5 -  Not Fused for \
-					 OMAP3630 1.2G Chip.\n");
+		if (sr->opp_nvalue[4]) {
+			pr_info("VDD1 - OPP5 -  1.2G Nvalue = 0x%X\n",
+				sr->opp_nvalue[4]);
 		}
-		pr_info("VDD1 - OPP4 -  1G Nvalue = 0x%X\n",
+		if (sr->opp_nvalue[3]) {
+			pr_info("VDD1 - OPP4 -  1G Nvalue = 0x%X\n",
 				sr->opp_nvalue[3]);
+		}
 		pr_info("VDD1 - OPP3 - 800 Nvalue = 0x%X\n",
 				sr->opp_nvalue[2]);
 		pr_info("VDD1 - OPP2 - 600 Nvalue = 0x%X\n",

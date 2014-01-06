@@ -368,7 +368,6 @@ static struct omap_clk omap34xx_clks[] = {
 
 unsigned long long cpu_hz;
 EXPORT_SYMBOL(cpu_hz);
-EXPORT_SYMBOL(mpu_opps);
 
 /**
  * omap3430es2_clk_ssi_find_idlest - return CM_IDLEST info for SSI

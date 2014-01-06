@@ -398,10 +398,9 @@ u8 omap_pm_get_max_vdd1_opp()
 		case OMAP_3630:
 		default:
 			return VDD1_OPP4;
-		case OMAP_3630_0800:
-			return VDD1_OPP3;
-		case OMAP_3630_1000:
+		case OMAP_3630_0800: /* Allow 1 GHz on these as well */
 			return VDD1_OPP4;
+		case OMAP_3630_1000: /* Allow 1.2 GHz on these as well */
 		case OMAP_3630_1200:
 			return VDD1_OPP5;
 		}
