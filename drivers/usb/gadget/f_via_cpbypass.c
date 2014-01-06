@@ -622,7 +622,7 @@ static void select_rx_push(unsigned long select1)
 	}
 }
 
-static int __init
+static int
 ets_function_bind(struct usb_configuration *c, struct usb_function *f)
 {
 	struct usb_composite_dev *cdev = c->cdev;
