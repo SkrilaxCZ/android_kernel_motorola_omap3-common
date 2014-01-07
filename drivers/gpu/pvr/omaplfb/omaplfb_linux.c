@@ -288,6 +288,22 @@ static int __exit OMAPLFBDriverRemove_Entry(struct platform_device *pdev)
 	return 0;
 }
 
+#if defined(MODULE)
+
+static IMG_VOID OMAPLFBDeviceRelease(struct device unref__ *pDevice)
+{
+}
+
+static struct platform_device omaplfb_device = {
+	.name			= DEVNAME,
+	.id				= -1,
+	.dev			= {
+		.release	= OMAPLFBDeviceRelease
+	}
+};
+
+#endif
+
 static struct platform_driver omaplfb_driver = {
 	.driver = {
 		.name		= DRVNAME,
@@ -311,11 +327,25 @@ static int __init OMAPLFB_Init(void)
 		return -ENODEV;
 	}
 
+#if defined(MODULE)
+	if ((error = platform_device_register(&omaplfb_device)) != 0)
+	{
+		platform_driver_unregister(&omaplfb_driver);
+
+		printk(KERN_WARNING DRIVER_PREFIX "OMAPLFB_Init: Unable to register platform device (%d)\n", error);
+
+		return -ENODEV;
+	}
+#endif
+
 	return 0;
 }
 
 static IMG_VOID __exit OMAPLFB_Cleanup(IMG_VOID)
-{    
+{
+#if defined(MODULE)
+	platform_device_unregister(&omaplfb_device);
+#endif
 	platform_driver_unregister(&omaplfb_driver);
 
 	if(OMAPLFBDeinit() != OMAP_OK)
