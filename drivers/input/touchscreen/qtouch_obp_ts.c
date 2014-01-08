@@ -103,6 +103,7 @@ static void qtouch_ts_early_suspend(struct early_suspend *handler);
 static void qtouch_ts_late_resume(struct early_suspend *handler);
 #endif
 
+static int qtouch_force_reinit;
 static struct qtouch_ts_data qtouch_ts_dat;
 static struct workqueue_struct *qtouch_ts_wq;
 
@@ -383,6 +384,7 @@ static int proc_qtouch_num_write(struct file *filp, const char __user *buffer, u
 		
 		if (qtouch_ts_dat.pdata->multi_touch_cfg.num_touch != new_num_touch) {
 			qtouch_ts_dat.pdata->multi_touch_cfg.num_touch = new_num_touch;
+			qtouch_force_reinit = 1;
 			qtouch_force_reset(&qtouch_ts_dat, 0);
 		}
 	} 
@@ -764,10 +766,21 @@ static int do_cmd_proc_msg(struct qtouch_ts_data *ts, struct qtm_object *obj,
 				ts->checksum_cnt++;
 			}
 		} else {
-			pr_info("%s:EEPROM checksum matches\n", __func__);
+			if (qtouch_force_reinit) {
+				pr_info("%s:EEPROM checksum matches, but reinitialization is forced\n", __func__);
+				ret = qtouch_hw_init(ts);
+				if (ret != 0)
+					pr_err("%s:Cannot init the touch IC\n",
+						   __func__);
+				hw_reset = 1;
+				ts->checksum_cnt++;
+			} else {
+				pr_info("%s:EEPROM checksum matches\n", __func__);
+			}
 		}
 		if (ts->family_id == QTM_OBP_FAMILY_XMEGAT)
 			calibrate_chip(ts);
+		qtouch_force_reinit = 0;
 		pr_info("%s: Reset done.\n", __func__);
 	}
 
@@ -1124,9 +1137,9 @@ static int qtouch_process_info_block(struct qtouch_ts_data *ts)
 #ifndef IGNORE_CHECKSUM_MISMATCH
 	uint32_t our_csum = 0x0;
 	uint32_t their_csum = 0x0;
+	uint8_t checksum[3];
 #endif
 	uint8_t report_id;
-	uint8_t checksum[3];
 	uint16_t addr;
 	int err;
 	int i;
