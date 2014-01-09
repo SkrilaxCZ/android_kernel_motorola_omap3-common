@@ -152,7 +152,7 @@
 #define I2C_MAX_DEV_NAME_LEN 16
 #define I2C_BUS_PROP_NAME_LEN 12
 
-char *bp_model = "CDMA";
+char *bp_model = "UMTS";
 
 static struct omap_opp mapphone_omap3430_mpu_rate_table[] = {
 	{0, 0, 0, 0},
